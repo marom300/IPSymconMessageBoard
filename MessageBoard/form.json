@@ -2,8 +2,139 @@
     "elements": [
         {
             "type": "ExpansionPanel",
-            "caption": "Allgemein",
+            "caption": "Variablen-Überwachung",
             "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Hier konfigurieren Sie Variablen, die automatisch Meldungen erzeugen oder entfernen.",
+                    "italic": true
+                },
+                {
+                    "type": "List",
+                    "name": "WatchedVariables",
+                    "caption": "",
+                    "rowCount": 8,
+                    "add": true,
+                    "delete": true,
+                    "sort": {
+                        "column": "Priority",
+                        "direction": "ascending"
+                    },
+                    "columns": [
+                        {
+                            "name": "VariableID",
+                            "caption": "Variable",
+                            "width": "200px",
+                            "add": 0,
+                            "edit": {
+                                "type": "SelectVariable"
+                            }
+                        },
+                        {
+                            "name": "Trigger",
+                            "caption": "Auslöser",
+                            "width": "130px",
+                            "add": 0,
+                            "edit": {
+                                "type": "Select",
+                                "options": [
+                                    { "caption": "= true", "value": 0 },
+                                    { "caption": "= false", "value": 1 },
+                                    { "caption": "> Schwellwert", "value": 2 },
+                                    { "caption": "< Schwellwert", "value": 3 },
+                                    { "caption": "!= Wert", "value": 4 },
+                                    { "caption": "= Wert", "value": 5 },
+                                    { "caption": "Bei jeder Änderung", "value": 6 }
+                                ]
+                            }
+                        },
+                        {
+                            "name": "Threshold",
+                            "caption": "Schwellwert",
+                            "width": "90px",
+                            "add": "",
+                            "edit": {
+                                "type": "ValidationTextBox"
+                            }
+                        },
+                        {
+                            "name": "Text",
+                            "caption": "Meldungstext",
+                            "width": "auto",
+                            "add": "",
+                            "edit": {
+                                "type": "ValidationTextBox",
+                                "placeholder": "z.B. Fenster %n offen (Wert: %v)"
+                            }
+                        },
+                        {
+                            "name": "Priority",
+                            "caption": "Priorität",
+                            "width": "100px",
+                            "add": 0,
+                            "edit": {
+                                "type": "Select",
+                                "options": [
+                                    { "caption": "Info", "value": 0 },
+                                    { "caption": "Hinweis", "value": 1 },
+                                    { "caption": "Warnung", "value": 2 },
+                                    { "caption": "Alarm", "value": 3 }
+                                ]
+                            }
+                        },
+                        {
+                            "name": "Icon",
+                            "caption": "Icon",
+                            "width": "80px",
+                            "add": "Alert",
+                            "edit": {
+                                "type": "ValidationTextBox"
+                            }
+                        },
+                        {
+                            "name": "TTL",
+                            "caption": "TTL (Min.)",
+                            "width": "80px",
+                            "add": 0,
+                            "edit": {
+                                "type": "NumberSpinner",
+                                "minimum": 0,
+                                "suffix": "min"
+                            }
+                        },
+                        {
+                            "name": "AutoRemove",
+                            "caption": "Auto-Weg",
+                            "width": "70px",
+                            "add": true,
+                            "edit": {
+                                "type": "CheckBox"
+                            }
+                        },
+                        {
+                            "name": "Active",
+                            "caption": "Aktiv",
+                            "width": "50px",
+                            "add": true,
+                            "edit": {
+                                "type": "CheckBox"
+                            }
+                        }
+                    ],
+                    "values": []
+                },
+                {
+                    "type": "Label",
+                    "caption": "Platzhalter: %v = Variablenwert, %n = Variablenname, %t = Zeitpunkt",
+                    "italic": true
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Darstellung",
+            "expanded": false,
             "items": [
                 {
                     "type": "NumberSpinner",
@@ -112,13 +243,13 @@
                 {
                     "type": "Button",
                     "caption": "Meldungsliste aktualisieren",
-                    "onClick": "IPS_RequestAction($id, 'RefreshForm', true); IPS_ApplyChanges($id);"
+                    "onClick": "IPS_ApplyChanges($id);"
                 },
                 {
                     "type": "Button",
                     "caption": "Alle Meldungen löschen",
                     "confirm": "Wirklich ALLE Meldungen löschen?",
-                    "onClick": "MSGBOARD_ClearAll($id); echo 'Alle Meldungen gelöscht.';"
+                    "onClick": "MSGBOARD_ClearAll($id); IPS_ApplyChanges($id); echo 'Alle Meldungen gelöscht.';"
                 }
             ]
         },
@@ -133,22 +264,22 @@
                 {
                     "type": "Button",
                     "caption": "Test-Info",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Info-Meldung', 0, 'Information', 0); IPS_ApplyChanges($id); echo 'Info-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Info-Meldung', 0, 'Information', 0); echo 'Info hinzugefügt.';"
                 },
                 {
                     "type": "Button",
                     "caption": "Test-Hinweis",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Hinweis-Meldung', 1, 'Warning', 0); IPS_ApplyChanges($id); echo 'Hinweis-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Hinweis-Meldung', 1, 'Warning', 0); echo 'Hinweis hinzugefügt.';"
                 },
                 {
                     "type": "Button",
                     "caption": "Test-Warnung",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Warnung-Meldung', 2, 'Alert', 0); IPS_ApplyChanges($id); echo 'Warnung-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Warnung-Meldung', 2, 'Alert', 0); echo 'Warnung hinzugefügt.';"
                 },
                 {
                     "type": "Button",
                     "caption": "Test-Alarm",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Alarm-Meldung', 3, 'Flame', 0); IPS_ApplyChanges($id); echo 'Alarm-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Alarm-Meldung', 3, 'Flame', 0); echo 'Alarm hinzugefügt.';"
                 }
             ]
         }

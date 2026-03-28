@@ -52,15 +52,20 @@ class MessageBoard extends IPSModule
         // ── Webhook registrieren ──
         $this->RegisterHookIfNeeded('/hook/msgboard/' . $this->InstanceID);
 
-        // Variable-Überwachung (Phase 2)
+        // ── Variablen-Überwachung registrieren ──
         $watched = json_decode($this->ReadPropertyString('WatchedVariables'), true);
         if (is_array($watched)) {
             foreach ($watched as $entry) {
-                if (isset($entry['VariableID']) && $entry['VariableID'] > 0) {
+                if (isset($entry['VariableID']) && $entry['VariableID'] > 0
+                    && isset($entry['Active']) && $entry['Active']) {
                     $this->RegisterMessage($entry['VariableID'], VM_UPDATE);
+                    $this->SendDebug('ApplyChanges', 'Überwache Variable: ' . $entry['VariableID'], 0);
                 }
             }
         }
+
+        // Initiale Prüfung aller überwachten Variablen
+        $this->checkAllWatchedVariables();
 
         // Cleanup-Timer
         $interval = $this->ReadPropertyInteger('CleanupInterval');
@@ -125,15 +130,147 @@ class MessageBoard extends IPSModule
     }
 
     // ═════════════════════════════════════════════════════════════
-    //  Event-Eingang (Phase 2)
+    //  Event-Eingang – Variablen-Überwachung
     // ═════════════════════════════════════════════════════════════
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
         if ($Message === VM_UPDATE) {
+            $newValue = $Data[0];
             $this->SendDebug('MessageSink', sprintf(
-                'Variable %d aktualisiert: %s', $SenderID, strval($Data[0])
+                'Variable %d → %s', $SenderID, strval($newValue)
             ), 0);
+            $this->handleVariableUpdate($SenderID, $newValue);
+        }
+    }
+
+    /**
+     * Variable hat sich geändert – Meldung erzeugen oder entfernen.
+     */
+    private function handleVariableUpdate(int $variableId, $newValue): void
+    {
+        $watched = json_decode($this->ReadPropertyString('WatchedVariables'), true);
+        if (!is_array($watched)) {
+            return;
+        }
+
+        foreach ($watched as $entry) {
+            if (!isset($entry['VariableID']) || $entry['VariableID'] !== $variableId) {
+                continue;
+            }
+            if (!isset($entry['Active']) || !$entry['Active']) {
+                continue;
+            }
+
+            $triggered = $this->evaluateTrigger($entry, $newValue);
+            $store = $this->loadMessages();
+            $existing = $store->findBySourceVariable($variableId);
+
+            if ($triggered) {
+                // Bedingung erfüllt → Meldung erzeugen (falls nicht schon vorhanden)
+                if ($existing === null) {
+                    $text = $this->replacePlaceholders($entry['Text'] ?? '', $variableId, $newValue);
+                    $priority = $entry['Priority'] ?? 0;
+                    $icon = $entry['Icon'] ?? 'Alert';
+                    $ttl = (isset($entry['TTL']) && $entry['TTL'] > 0) ? ($entry['TTL'] * 60) : 0;
+
+                    $store->add($text, $priority, $icon, $ttl, $variableId);
+                    $this->persistMessages($store);
+                    $this->updateVisualization();
+
+                    $this->SendDebug('VariableWatch', sprintf(
+                        'Meldung erzeugt für Variable %d: %s', $variableId, $text
+                    ), 0);
+                }
+            } else {
+                // Bedingung NICHT mehr erfüllt → Auto-Entfernen?
+                if ($existing !== null && isset($entry['AutoRemove']) && $entry['AutoRemove']) {
+                    $store->remove($existing['id']);
+                    $this->persistMessages($store);
+                    $this->updateVisualization();
+
+                    $this->SendDebug('VariableWatch', sprintf(
+                        'Meldung auto-entfernt für Variable %d', $variableId
+                    ), 0);
+                }
+            }
+        }
+    }
+
+    /**
+     * Auslöser-Bedingung prüfen.
+     */
+    private function evaluateTrigger(array $entry, $value): bool
+    {
+        $trigger = $entry['Trigger'] ?? 0;
+        $threshold = $entry['Threshold'] ?? '';
+
+        switch ($trigger) {
+            case 0: // = true
+                return boolval($value) === true;
+
+            case 1: // = false
+                return boolval($value) === false;
+
+            case 2: // > Schwellwert
+                return is_numeric($threshold) && floatval($value) > floatval($threshold);
+
+            case 3: // < Schwellwert
+                return is_numeric($threshold) && floatval($value) < floatval($threshold);
+
+            case 4: // != Wert
+                return strval($value) !== strval($threshold);
+
+            case 5: // = Wert
+                return strval($value) === strval($threshold);
+
+            case 6: // Bei jeder Änderung → immer auslösen
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Platzhalter im Meldungstext ersetzen.
+     * %v = Variablenwert, %n = Variablenname, %t = Zeitpunkt
+     */
+    private function replacePlaceholders(string $text, int $variableId, $value): string
+    {
+        $name = IPS_ObjectExists($variableId) ? IPS_GetName($variableId) : 'Unbekannt';
+        $time = date('H:i');
+
+        $text = str_replace('%v', strval($value), $text);
+        $text = str_replace('%n', $name, $text);
+        $text = str_replace('%t', $time, $text);
+
+        return $text;
+    }
+
+    /**
+     * Alle überwachten Variablen einmalig prüfen (bei ApplyChanges).
+     */
+    private function checkAllWatchedVariables(): void
+    {
+        $watched = json_decode($this->ReadPropertyString('WatchedVariables'), true);
+        if (!is_array($watched)) {
+            return;
+        }
+
+        foreach ($watched as $entry) {
+            if (!isset($entry['VariableID']) || $entry['VariableID'] <= 0) {
+                continue;
+            }
+            if (!isset($entry['Active']) || !$entry['Active']) {
+                continue;
+            }
+            if (!IPS_VariableExists($entry['VariableID'])) {
+                continue;
+            }
+
+            $currentValue = GetValue($entry['VariableID']);
+            $this->handleVariableUpdate($entry['VariableID'], $currentValue);
         }
     }
 
