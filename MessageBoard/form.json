@@ -1,0 +1,168 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "caption": "Allgemein",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "MaxMessages",
+                    "caption": "Maximale Meldungsanzahl",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "suffix": "Meldungen"
+                },
+                {
+                    "type": "Select",
+                    "name": "SortOrder",
+                    "caption": "Sortierung",
+                    "options": [
+                        { "caption": "Neueste zuerst", "value": 0 },
+                        { "caption": "Älteste zuerst",  "value": 1 },
+                        { "caption": "Priorität (hoch → niedrig)", "value": 2 }
+                    ]
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "ShowAcknowledgeAll",
+                    "caption": "\"Alle quittieren\"-Button anzeigen"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Wartung",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "CleanupInterval",
+                    "caption": "Cleanup-Intervall",
+                    "minimum": 10,
+                    "maximum": 3600,
+                    "suffix": "Sekunden"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Label",
+            "caption": "━━━ Aktuelle Meldungen ━━━",
+            "bold": true
+        },
+        {
+            "type": "List",
+            "name": "MessageList",
+            "caption": "",
+            "rowCount": 10,
+            "sort": {
+                "column": "timestamp",
+                "direction": "descending"
+            },
+            "columns": [
+                {
+                    "name": "priority",
+                    "caption": "Priorität",
+                    "width": "90px",
+                    "edit": { "type": "Label" }
+                },
+                {
+                    "name": "icon",
+                    "caption": "Icon",
+                    "width": "60px",
+                    "edit": { "type": "Label" }
+                },
+                {
+                    "name": "text",
+                    "caption": "Meldungstext",
+                    "width": "auto",
+                    "edit": { "type": "Label" }
+                },
+                {
+                    "name": "timestamp",
+                    "caption": "Zeitpunkt",
+                    "width": "140px",
+                    "edit": { "type": "Label" }
+                },
+                {
+                    "name": "expires",
+                    "caption": "Läuft ab",
+                    "width": "140px",
+                    "edit": { "type": "Label" }
+                },
+                {
+                    "name": "acknowledged",
+                    "caption": "Quittiert",
+                    "width": "70px",
+                    "edit": { "type": "Label" }
+                }
+            ],
+            "values": []
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "Button",
+                    "caption": "Meldungsliste aktualisieren",
+                    "onClick": "echo json_encode(MSGBOARD_GetMessages($id));"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Alle Meldungen löschen",
+                    "confirm": "Wirklich ALLE Meldungen löschen?",
+                    "onClick": "MSGBOARD_ClearAll($id); echo 'Alle Meldungen gelöscht.';"
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "caption": "━━━ Test ━━━",
+            "bold": true
+        },
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "Button",
+                    "caption": "Test-Info",
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Info-Meldung', 0, 'Information', 0); echo 'Info-Meldung hinzugefügt.';"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Test-Hinweis",
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Hinweis-Meldung', 1, 'Warning', 0); echo 'Hinweis-Meldung hinzugefügt.';"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Test-Warnung",
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Warnung-Meldung', 2, 'Alert', 0); echo 'Warnung-Meldung hinzugefügt.';"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Test-Alarm",
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Alarm-Meldung', 3, 'Flame', 0); echo 'Alarm-Meldung hinzugefügt.';"
+                }
+            ]
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "MessageBoard aktiv"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "MessageBoard inaktiv"
+        },
+        {
+            "code": 200,
+            "icon": "error",
+            "caption": "Fehler – siehe Meldungen"
+        }
+    ]
+}
