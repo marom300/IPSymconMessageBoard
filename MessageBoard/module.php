@@ -5,11 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/MessageStore.php';
 
 /**
- * MessageBoard – Zentrale Meldungsanzeige für IP-Symcon 7.x
+ * MessageBoard – Zentrale Meldungsanzeige für IP-Symcon 7.x / 8.x
  *
  * Verwaltet Meldungen mit Prioritäten, Quittierung und Verfallszeit.
- * Bietet eine Tile-Visualisierung für das WebFront sowie eine
- * öffentliche API (Präfix: MSGBOARD_).
+ * Erzeugt eine HTML-Box Variable für WebFront und IPSView
+ * sowie eine Tile-Visualisierung für die Kachel-Visu.
  */
 class MessageBoard extends IPSModule
 {
@@ -39,8 +39,13 @@ class MessageBoard extends IPSModule
     {
         parent::ApplyChanges();
 
-        // Alte Nachrichten-Registrierungen aufheben (sauberer Neustart)
-        // Hinweis: In Phase 2 wird hier die Variable-Überwachung erweitert
+        // ── HTML-Box Variable anlegen ──
+        $this->MaintainVariable('HTMLBox', 'Meldungsanzeige', VARIABLETYPE_STRING, '~HTMLBox', 1, true);
+
+        // ── Zähler-Variable anlegen ──
+        $this->MaintainVariable('MessageCount', 'Anzahl Meldungen', VARIABLETYPE_INTEGER, '', 2, true);
+
+        // Variable-Überwachung (Phase 2)
         $watched = json_decode($this->ReadPropertyString('WatchedVariables'), true);
         if (is_array($watched)) {
             foreach ($watched as $entry) {
@@ -53,6 +58,9 @@ class MessageBoard extends IPSModule
         // Cleanup-Timer setzen
         $interval = $this->ReadPropertyInteger('CleanupInterval');
         $this->SetTimerInterval('CleanupExpired', $interval * 1000);
+
+        // HTML initial rendern
+        $this->updateVisualization();
 
         // Instanz-Status setzen
         $this->SetStatus(102); // IS_ACTIVE
@@ -98,23 +106,14 @@ class MessageBoard extends IPSModule
 
     /**
      * Neue Meldung hinzufügen.
-     *
-     * @param string $Text     Meldungstext
-     * @param int    $Priority 0=Info, 1=Hinweis, 2=Warnung, 3=Alarm
-     * @param string $Icon     Icon-Name (z.B. "Window", "Alert", "Information")
-     * @param int    $TTL      Time-to-Live in Sekunden (0 = kein Ablauf)
-     *
-     * @return string  ID der neuen Meldung
      */
     public function AddMessage(string $Text, int $Priority = 0, string $Icon = 'Information', int $TTL = 0): string
     {
         $store = $this->loadMessages();
 
-        // Maximale Anzahl prüfen
         $max = $this->ReadPropertyInteger('MaxMessages');
         if ($store->count() >= $max) {
             $this->SendDebug('AddMessage', 'Max. Meldungsanzahl erreicht (' . $max . ')', 0);
-            // Älteste Meldung mit niedrigster Priorität entfernen
             $this->removeOldestLowPriority($store);
         }
 
@@ -193,8 +192,6 @@ class MessageBoard extends IPSModule
 
     /**
      * Alle Meldungen als Array zurückgeben.
-     *
-     * @return array
      */
     public function GetMessages(): array
     {
@@ -224,9 +221,6 @@ class MessageBoard extends IPSModule
     //  Timer-Callback: Abgelaufene Meldungen entfernen
     // ═════════════════════════════════════════════════════════════
 
-    /**
-     * Wird vom CleanupExpired-Timer aufgerufen.
-     */
     public function CleanupExpired(): void
     {
         $store = $this->loadMessages();
@@ -240,13 +234,9 @@ class MessageBoard extends IPSModule
     }
 
     // ═════════════════════════════════════════════════════════════
-    //  Tile-Visualisierung (Phase 3 – Platzhalter)
+    //  Tile-Visualisierung
     // ═════════════════════════════════════════════════════════════
 
-    /**
-     * HTML für die Tile-Visualisierung zurückgeben.
-     * Vollständige Implementierung in Phase 3.
-     */
     public function GetVisualizationTile(): string
     {
         return $this->renderTileHTML();
@@ -256,9 +246,6 @@ class MessageBoard extends IPSModule
     //  Private Hilfsmethoden
     // ═════════════════════════════════════════════════════════════
 
-    /**
-     * Meldungen aus dem Attribut laden.
-     */
     private function loadMessages(): MessageStore
     {
         $store = new MessageStore();
@@ -267,24 +254,83 @@ class MessageBoard extends IPSModule
         return $store;
     }
 
-    /**
-     * Meldungen im Attribut persistieren.
-     */
     private function persistMessages(MessageStore $store): void
     {
         $this->WriteAttributeString('Messages', $store->toJSON());
     }
 
     /**
-     * Tile-Update an das WebFront pushen.
+     * HTML-Box Variable + Tile + Zähler aktualisieren.
      */
     private function updateVisualization(): void
     {
+        // HTML-Box für WebFront & IPSView
+        $this->SetValue('HTMLBox', $this->renderHTMLBox());
+
+        // Meldungszähler
+        $store = $this->loadMessages();
+        $this->SetValue('MessageCount', $store->count());
+
+        // Tile-Visu Update
         $this->UpdateVisualizationValue($this->renderTileDataJSON());
     }
 
     /**
-     * Minimale Tile-HTML (Platzhalter – Phase 3 bringt das volle Design).
+     * HTML für die HTML-Box Variable (WebFront + IPSView).
+     */
+    private function renderHTMLBox(): string
+    {
+        $store = $this->loadMessages();
+        $messages = $store->getAll();
+        $count = $store->count();
+
+        $html = '<style>
+            .msgboard { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; width: 100%; border-collapse: collapse; }
+            .msgboard-header { background: #1a1a2e; color: #fff; padding: 10px 14px; font-size: 15px; font-weight: 600; }
+            .msgboard-header .badge { background: #444; padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-left: 8px; }
+            .msgboard-row { border-bottom: 1px solid #e0e0e0; }
+            .msgboard-row td { padding: 8px 12px; vertical-align: middle; font-size: 13px; }
+            .msgboard-prio { font-weight: 700; font-size: 11px; text-transform: uppercase; width: 70px; text-align: center; border-radius: 4px; color: #fff; padding: 3px 6px !important; }
+            .msgboard-text { }
+            .msgboard-time { color: #888; font-size: 11px; text-align: right; width: 50px; white-space: nowrap; }
+            .msgboard-ack { opacity: 0.4; text-decoration: line-through; }
+            .msgboard-empty { text-align: center; padding: 30px; color: #999; font-size: 14px; }
+            .prio-0 { background: #2196F3; }
+            .prio-1 { background: #FFC107; color: #333 !important; }
+            .prio-2 { background: #FF9800; }
+            .prio-3 { background: #F44336; }
+        </style>';
+
+        $html .= '<table class="msgboard">';
+        $html .= '<tr><td colspan="3" class="msgboard-header">';
+        $html .= '&#128276; Meldungen <span class="badge">' . $count . '</span>';
+        $html .= '</td></tr>';
+
+        if ($count === 0) {
+            $html .= '<tr><td colspan="3" class="msgboard-empty">';
+            $html .= '&#10004; Keine aktiven Meldungen';
+            $html .= '</td></tr>';
+        } else {
+            foreach ($messages as $msg) {
+                $prioClass = 'prio-' . $msg['priority'];
+                $label = MessageStore::PRIORITY_LABELS[$msg['priority']] ?? 'Info';
+                $time = date('H:i', $msg['timestamp']);
+                $rowClass = $msg['acknowledged'] ? 'msgboard-row msgboard-ack' : 'msgboard-row';
+
+                $html .= '<tr class="' . $rowClass . '">';
+                $html .= '<td class="msgboard-prio ' . $prioClass . '">' . $label . '</td>';
+                $html .= '<td class="msgboard-text">' . htmlspecialchars($msg['text']) . '</td>';
+                $html .= '<td class="msgboard-time">' . $time . '</td>';
+                $html .= '</tr>';
+            }
+        }
+
+        $html .= '</table>';
+        return $html;
+    }
+
+    /**
+     * HTML für die Tile-Visualisierung (Kachel-Visu).
      */
     private function renderTileHTML(): string
     {
@@ -292,21 +338,21 @@ class MessageBoard extends IPSModule
         $messages = $store->getAll();
         $count = $store->count();
 
-        $html = '<div style="padding:8px;font-family:sans-serif;color:#fff;">';
+        $html = '<div style="padding:8px;font-family:sans-serif;color:#fff;height:100%;box-sizing:border-box;overflow-y:auto;">';
         $html .= '<div style="font-size:14px;font-weight:bold;margin-bottom:6px;">';
-        $html .= '🔔 Meldungen <span style="background:#555;padding:2px 8px;border-radius:10px;font-size:12px;">' . $count . '</span>';
+        $html .= '&#128276; Meldungen <span style="background:#555;padding:2px 8px;border-radius:10px;font-size:12px;">' . $count . '</span>';
         $html .= '</div>';
 
         if ($count === 0) {
-            $html .= '<div style="text-align:center;padding:20px;opacity:0.5;">Keine Meldungen</div>';
+            $html .= '<div style="text-align:center;padding:20px;opacity:0.5;">&#10004; Keine Meldungen</div>';
         } else {
             foreach (array_slice($messages, 0, 10) as $msg) {
                 $color = MessageStore::PRIORITY_COLORS[$msg['priority']] ?? '#2196F3';
                 $label = MessageStore::PRIORITY_LABELS[$msg['priority']] ?? 'Info';
                 $time = date('H:i', $msg['timestamp']);
-                $ack = $msg['acknowledged'] ? ' style="opacity:0.5;text-decoration:line-through;"' : '';
+                $ack = $msg['acknowledged'] ? 'opacity:0.4;text-decoration:line-through;' : '';
 
-                $html .= '<div' . $ack . ' style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:6px;">';
+                $html .= '<div style="' . $ack . 'padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:6px;">';
                 $html .= '<span style="color:' . $color . ';font-size:10px;font-weight:bold;min-width:60px;">' . strtoupper($label) . '</span>';
                 $html .= '<span style="flex:1;font-size:12px;">' . htmlspecialchars($msg['text']) . '</span>';
                 $html .= '<span style="font-size:10px;opacity:0.6;">' . $time . '</span>';
@@ -335,7 +381,7 @@ class MessageBoard extends IPSModule
     }
 
     /**
-     * Älteste Meldung mit niedrigster Priorität entfernen (FIFO bei Überlauf).
+     * Älteste Meldung mit niedrigster Priorität entfernen.
      */
     private function removeOldestLowPriority(MessageStore $store): void
     {
@@ -344,7 +390,6 @@ class MessageBoard extends IPSModule
             return;
         }
 
-        // Sortiere: niedrigste Priorität zuerst, dann älteste zuerst
         usort($all, function (array $a, array $b): int {
             if ($a['priority'] !== $b['priority']) {
                 return $a['priority'] - $b['priority'];
