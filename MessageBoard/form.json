@@ -27,6 +27,11 @@
                     "type": "CheckBox",
                     "name": "ShowAcknowledgeAll",
                     "caption": "\"Alle quittieren\"-Button anzeigen"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "RemoveOnAcknowledge",
+                    "caption": "Meldungen bei Quittierung entfernen (statt ausgrauen)"
                 }
             ]
         },
@@ -107,7 +112,7 @@
                 {
                     "type": "Button",
                     "caption": "Meldungsliste aktualisieren",
-                    "onClick": "echo json_encode(MSGBOARD_GetMessages($id));"
+                    "onClick": "IPS_RequestAction($id, 'RefreshForm', true); IPS_ApplyChanges($id);"
                 },
                 {
                     "type": "Button",
@@ -128,22 +133,22 @@
                 {
                     "type": "Button",
                     "caption": "Test-Info",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Info-Meldung', 0, 'Information', 0); echo 'Info-Meldung hinzugefügt.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Info-Meldung', 0, 'Information', 0); IPS_ApplyChanges($id); echo 'Info-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
                 },
                 {
                     "type": "Button",
                     "caption": "Test-Hinweis",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Hinweis-Meldung', 1, 'Warning', 0); echo 'Hinweis-Meldung hinzugefügt.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Hinweis-Meldung', 1, 'Warning', 0); IPS_ApplyChanges($id); echo 'Hinweis-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
                 },
                 {
                     "type": "Button",
                     "caption": "Test-Warnung",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Warnung-Meldung', 2, 'Alert', 0); echo 'Warnung-Meldung hinzugefügt.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Warnung-Meldung', 2, 'Alert', 0); IPS_ApplyChanges($id); echo 'Warnung-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
                 },
                 {
                     "type": "Button",
                     "caption": "Test-Alarm",
-                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Alarm-Meldung', 3, 'Flame', 0); echo 'Alarm-Meldung hinzugefügt.';"
+                    "onClick": "MSGBOARD_AddMessage($id, 'Test-Alarm-Meldung', 3, 'Flame', 0); IPS_ApplyChanges($id); echo 'Alarm-Meldung hinzugefügt. Formular neu öffnen um Liste zu sehen.';"
                 }
             ]
         }
