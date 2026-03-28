@@ -1,9 +1,9 @@
 {
-    "id": "{C9A29E11-3B4E-4F5A-9C1D-7E2F8A6B0D3C}",
-    "author": "Roman Martin",
-    "name": "MessageBoard",
-    "url": "https://github.com/marom300/IPSymconMessageBoard",
-    "compatibility": {
-        "version": "7.0"
-    }
+	"id": "{C9A29E11-3B4E-4F5A-9C1D-7E2F8A6B0D3C}",
+	"author": "Roman Martin",
+	"name": "MessageBoard",
+	"url": "https://github.com/marom300/IPSymconMessageBoard",
+	"version": "1.0",
+	"build": 0,
+	"date": 0
 }

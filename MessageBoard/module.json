@@ -1,13 +1,11 @@
 {
-    "id": "{E7A1B2C3-D4E5-6F78-9A0B-C1D2E3F4A5B6}",
-    "name": "MessageBoard",
-    "type": 1,
-    "vendor": "Roman Martin",
-    "aliases": [],
-    "parentRequirements": [],
-    "childRequirements": [],
-    "implemented": [],
-    "prefix": "MSGBOARD",
-    "status": [],
-    "url": "https://github.com/marom300/IPSymconMessageBoard"
+	"id": "{E7A1B2C3-D4E5-6F78-9A0B-C1D2E3F4A5B6}",
+	"name": "MessageBoard",
+	"type": 1,
+	"vendor": "Roman Martin",
+	"aliases": [],
+	"parentRequirements": [],
+	"childRequirements": [],
+	"implemented": [],
+	"prefix": "MSGBOARD"
 }
