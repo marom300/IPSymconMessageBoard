@@ -1,7 +1,7 @@
 {
 	"id": "{E7A1B2C3-D4E5-6F78-9A0B-C1D2E3F4A5B6}",
 	"name": "MessageBoard",
-	"type": 1,
+	"type": 3,
 	"vendor": "Community",
 	"aliases": [],
 	"parentRequirements": [],
