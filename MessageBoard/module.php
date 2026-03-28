@@ -278,10 +278,19 @@ class MessageBoard extends IPSModule
     //  Konfigurationsformular dynamisch befüllen
     // ═════════════════════════════════════════════════════════════
 
-    public function GetConfigurationForm()
+    /**
+     * Meldungsliste im offenen Formular live aktualisieren.
+     */
+    public function RefreshMessageList(): void
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        $this->UpdateFormField('MessageList', 'values', json_encode($this->getMessageListValues()));
+    }
 
+    /**
+     * Meldungsliste als Array für das Formular aufbereiten.
+     */
+    private function getMessageListValues(): array
+    {
         $store = $this->loadMessages();
         $messages = $store->getAll();
         $listValues = [];
@@ -297,6 +306,15 @@ class MessageBoard extends IPSModule
                 'acknowledged' => $msg['acknowledged'] ? 'Ja' : 'Nein',
             ];
         }
+
+        return $listValues;
+    }
+
+    public function GetConfigurationForm()
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+
+        $listValues = $this->getMessageListValues();
 
         foreach ($form['actions'] as &$action) {
             if (isset($action['name']) && $action['name'] === 'MessageList') {
@@ -462,6 +480,9 @@ class MessageBoard extends IPSModule
         $this->SetValue('HTMLBox', $this->renderHTMLBox($store));
         $this->SetValue('MessageCount', $store->count());
         $this->UpdateVisualizationValue($this->renderTileDataJSON($store));
+
+        // Offenes Konfigurationsformular live aktualisieren
+        $this->UpdateFormField('MessageList', 'values', json_encode($this->getMessageListValues()));
     }
 
     /**

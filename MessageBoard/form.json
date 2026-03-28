@@ -243,13 +243,13 @@
                 {
                     "type": "Button",
                     "caption": "Meldungsliste aktualisieren",
-                    "onClick": "IPS_ApplyChanges($id);"
+                    "onClick": "MSGBOARD_RefreshMessageList($id);"
                 },
                 {
                     "type": "Button",
                     "caption": "Alle Meldungen löschen",
                     "confirm": "Wirklich ALLE Meldungen löschen?",
-                    "onClick": "MSGBOARD_ClearAll($id); IPS_ApplyChanges($id); echo 'Alle Meldungen gelöscht.';"
+                    "onClick": "MSGBOARD_ClearAll($id); echo 'Alle Meldungen gelöscht.';"
                 }
             ]
         },
